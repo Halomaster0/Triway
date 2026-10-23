@@ -1,0 +1,47 @@
+{
+  "name": "triway",
+  "version": "0.2.0",
+  "description": "Browser extension: driving vs PRESTO transit cost for Google Maps routes in the GTA",
+  "scripts": {
+    "build": "tsx scripts/build.ts",
+    "watch": "tsx scripts/build.ts --watch",
+    "package": "tsx scripts/package.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "e2e": "npm run build && tsx scripts/e2e.ts",
+    "data:vehicles": "tsx scripts/build-vehicles.ts",
+    "data:gas": "tsx scripts/set-gas-price.ts",
+    "data:fetch-vehicles": "tsx scripts/fetch-nrcan.ts && npm run data:vehicles",
+    "icons": "tsx scripts/render-icons.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Halomaster0/Triway.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Halomaster0/Triway/issues"
+  },
+  "homepage": "https://github.com/Halomaster0/Triway#readme",
+  "dependencies": {
+    "motion": "^14.5.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@types/chrome": "^0.3.6",
+    "@types/node": "^26.6.5",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "esbuild": "^0.28.2",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.64.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  },
+  "private": true,
+  "type": "module"
+}

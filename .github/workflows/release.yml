@@ -1,0 +1,59 @@
+name: Release
+
+# Push a tag like v0.3.0 to build, test and publish a GitHub Release with
+# ready-to-load zips. If the AMO_JWT_ISSUER / AMO_JWT_SECRET secrets exist,
+# the Firefox build is also signed by Mozilla (unlisted) so it installs
+# permanently from the .xpi.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+      AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Tag matches package.json version
+        run: test "v$(node -p 'require("./package.json").version')" = "${GITHUB_REF_NAME%%-*}"
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run package
+
+      - name: Sign Firefox add-on (unlisted)
+        if: env.AMO_JWT_ISSUER != ''
+        run: |
+          npx --yes web-ext@8 sign --source-dir dist/firefox --artifacts-dir release \
+            --channel unlisted --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET"
+          for f in release/*.xpi; do mv "$f" "release/triway-firefox-${GITHUB_REF_NAME}.xpi"; done
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'NOTES'
+          ## Install
+
+          **Chrome, Edge, Brave, Arc**
+          1. Download `triway-chrome-…zip` below and unzip it somewhere permanent (e.g. Documents/Triway).
+          2. Open `chrome://extensions` (or `edge://extensions`), turn on **Developer mode**.
+          3. Click **Load unpacked** and pick the unzipped folder.
+
+          **Firefox**: download the `.xpi` (if attached) and open it. Otherwise use `about:debugging` → *Load Temporary Add-on* with the Firefox zip (removed when Firefox restarts).
+
+          ## Updating
+          Unzip the new version over the old folder, then click ↻ on Triway in `chrome://extensions`. Your settings are kept.
+          NOTES
+          flags=""
+          case "$GITHUB_REF_NAME" in *-*) flags="--prerelease";; esac
+          gh release create "$GITHUB_REF_NAME" release/* --title "Triway $GITHUB_REF_NAME" --notes-file notes.md $flags

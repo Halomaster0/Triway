@@ -1,0 +1,33 @@
+name: Update gas price
+
+# Ontario publishes its weekly fuel price survey on Mondays. Installed copies
+# of Triway fetch data/live/gas-price.json from the default branch once a day.
+on:
+  schedule:
+    - cron: "23 15 * * 2" # Tuesdays
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx scripts/fetch-gas-price.ts
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- data/live/gas-price.json src/data/gasPrice.json; then
+            echo "No change"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/live/gas-price.json src/data/gasPrice.json
+          git commit -m "Update GTA gas price"
+          git push
